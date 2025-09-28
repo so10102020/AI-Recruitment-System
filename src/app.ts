@@ -41,8 +41,18 @@ const upload = multer({
   }
 });
 
-// 静的ファイル
-app.use(express.static(path.join(__dirname, '../public')));
+// 静的ファイル配信の前に、トップページは no-store で必ず最新を返す
+app.get('/', (req, res) => {
+  res.setHeader('Cache-Control', 'no-store');
+  res.sendFile(path.join(__dirname, '../public/index.html'));
+});
+
+// 静的ファイル（開発中はキャッシュを無効化）
+app.use(express.static(path.join(__dirname, '../public'), {
+  etag: false,
+  lastModified: false,
+  cacheControl: false,
+}));
 
 // AI評価API
 app.post('/api/evaluate-pdf', upload.single('pdf'), async (req, res) => {
@@ -530,6 +540,7 @@ app.get('/api/health', (req, res) => {
 
 // SPA対応
 app.get('*', (req, res) => {
+  res.setHeader('Cache-Control', 'no-store');
   res.sendFile(path.join(__dirname, '../public/index.html'));
 });
 
