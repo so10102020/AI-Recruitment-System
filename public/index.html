@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI採用システム</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 40px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 30px;
+        }
+        .upload-area {
+            border: 2px dashed #ccc;
+            border-radius: 10px;
+            padding: 50px;
+            text-align: center;
+            margin: 20px 0;
+            cursor: pointer;
+        }
+        .upload-area:hover {
+            border-color: #007bff;
+            background: #f8f9fa;
+        }
+        .upload-area.dragover {
+            border-color: #007bff;
+            background: #e3f2fd;
+        }
+        input[type="file"] {
+            display: none;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        .processing {
+            display: none;
+            text-align: center;
+            padding: 40px;
+        }
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #007bff;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 2s linear infinite;
+            margin: 0 auto 20px;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .result {
+            display: none;
+            margin-top: 30px;
+            padding: 20px;
+            border-radius: 10px;
+        }
+        .result.pass {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+        .result.fail {
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+        .score {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 15px;
+        }
+        .reasoning {
+            margin-bottom: 20px;
+            line-height: 1.5;
+        }
+        .restart {
+            background: #6c757d;
+            margin-top: 20px;
+        }
+        .restart:hover {
+            background: #545b62;
+        }
+        .error {
+            display: none;
+            background: #f8d7da;
+            color: #721c24;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>AI採用システム</h1>
+        
+        <div id="uploadSection">
+            <div class="upload-area" id="uploadArea">
+                <p>📄 PDFファイルをドロップまたはクリックして選択</p>
+                <button type="button" onclick="document.getElementById('fileInput').click()">
+                    ファイルを選択
+                </button>
+                <input type="file" id="fileInput" accept=".pdf" onchange="handleFile(event)">
+            </div>
+        </div>
+
+        <div class="error" id="error"></div>
+
+        <div class="processing" id="processing">
+            <div class="spinner"></div>
+            <p>AI評価中...</p>
+        </div>
+
+        <div class="result" id="result">
+            <div class="score" id="score"></div>
+            <div class="reasoning" id="reasoning"></div>
+            <button class="restart" onclick="restart()">別のファイルを評価</button>
+        </div>
+    </div>
+
+    <script>
+        const uploadArea = document.getElementById('uploadArea');
+        const fileInput = document.getElementById('fileInput');
+        const uploadSection = document.getElementById('uploadSection');
+        const processing = document.getElementById('processing');
+        const result = document.getElementById('result');
+        const error = document.getElementById('error');
+
+        // ドラッグ&ドロップ
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.classList.add('dragover');
+        });
+
+        uploadArea.addEventListener('dragleave', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+        });
+
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                handleFile({ target: { files } });
+            }
+        });
+
+        async function handleFile(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            if (file.type !== 'application/pdf') {
+                showError('PDFファイルのみ対応しています');
+                return;
+            }
+
+            if (file.size > 10 * 1024 * 1024) {
+                showError('ファイルサイズは10MB以下にしてください');
+                return;
+            }
+
+            hideError();
+            showProcessing();
+
+            try {
+                const formData = new FormData();
+                formData.append('pdf', file);
+
+                const response = await fetch('/api/evaluate-pdf', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    showResult(data.evaluation);
+                } else {
+                    throw new Error(data.message || 'エラーが発生しました');
+                }
+            } catch (err) {
+                showError('処理中にエラーが発生しました: ' + err.message);
+                showUpload();
+            }
+        }
+
+        function showProcessing() {
+            uploadSection.style.display = 'none';
+            processing.style.display = 'block';
+            result.style.display = 'none';
+        }
+
+        function showResult(evaluation) {
+            uploadSection.style.display = 'none';
+            processing.style.display = 'none';
+            result.style.display = 'block';
+
+            result.className = evaluation.decision === 'PASS' ? 'result pass' : 'result fail';
+            
+            document.getElementById('score').textContent = 
+                `${evaluation.decision === 'PASS' ? '✅ 2次選考通過' : '❌ 選考見送り'} (${evaluation.score}点)`;
+            
+            document.getElementById('reasoning').textContent = evaluation.reasoning;
+        }
+
+        function showUpload() {
+            uploadSection.style.display = 'block';
+            processing.style.display = 'none';
+            result.style.display = 'none';
+        }
+
+        function showError(message) {
+            error.textContent = message;
+            error.style.display = 'block';
+        }
+
+        function hideError() {
+            error.style.display = 'none';
+        }
+
+        function restart() {
+            fileInput.value = '';
+            hideError();
+            showUpload();
+        }
+    </script>
+</body>
+</html>
