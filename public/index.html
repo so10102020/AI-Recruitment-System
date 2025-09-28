@@ -121,10 +121,10 @@
         <div id="uploadSection">
             <div class="upload-area" id="uploadArea">
                 <p>📄 PDFファイルをドロップまたはクリックして選択</p>
-                <button type="button" onclick="document.getElementById('fileInput').click()">
+                <button type="button" id="selectFileBtn">
                     ファイルを選択
                 </button>
-                <input type="file" id="fileInput" accept=".pdf" onchange="handleFile(event)">
+                <input type="file" id="fileInput" accept=".pdf">
             </div>
         </div>
 
@@ -138,116 +138,10 @@
         <div class="result" id="result">
             <div class="score" id="score"></div>
             <div class="reasoning" id="reasoning"></div>
-            <button class="restart" onclick="restart()">別のファイルを評価</button>
+            <button class="restart" id="restartBtn">別のファイルを評価</button>
         </div>
     </div>
 
-    <script>
-        const uploadArea = document.getElementById('uploadArea');
-        const fileInput = document.getElementById('fileInput');
-        const uploadSection = document.getElementById('uploadSection');
-        const processing = document.getElementById('processing');
-        const result = document.getElementById('result');
-        const error = document.getElementById('error');
-
-        // ドラッグ&ドロップ
-        uploadArea.addEventListener('dragover', (e) => {
-            e.preventDefault();
-            uploadArea.classList.add('dragover');
-        });
-
-        uploadArea.addEventListener('dragleave', (e) => {
-            e.preventDefault();
-            uploadArea.classList.remove('dragover');
-        });
-
-        uploadArea.addEventListener('drop', (e) => {
-            e.preventDefault();
-            uploadArea.classList.remove('dragover');
-            const files = e.dataTransfer.files;
-            if (files.length > 0) {
-                handleFile({ target: { files } });
-            }
-        });
-
-        async function handleFile(event) {
-            const file = event.target.files[0];
-            if (!file) return;
-
-            if (file.type !== 'application/pdf') {
-                showError('PDFファイルのみ対応しています');
-                return;
-            }
-
-            if (file.size > 10 * 1024 * 1024) {
-                showError('ファイルサイズは10MB以下にしてください');
-                return;
-            }
-
-            hideError();
-            showProcessing();
-
-            try {
-                const formData = new FormData();
-                formData.append('pdf', file);
-
-                const response = await fetch('/api/evaluate-pdf', {
-                    method: 'POST',
-                    body: formData
-                });
-
-                const data = await response.json();
-
-                if (data.success) {
-                    showResult(data.evaluation);
-                } else {
-                    throw new Error(data.message || 'エラーが発生しました');
-                }
-            } catch (err) {
-                showError('処理中にエラーが発生しました: ' + err.message);
-                showUpload();
-            }
-        }
-
-        function showProcessing() {
-            uploadSection.style.display = 'none';
-            processing.style.display = 'block';
-            result.style.display = 'none';
-        }
-
-        function showResult(evaluation) {
-            uploadSection.style.display = 'none';
-            processing.style.display = 'none';
-            result.style.display = 'block';
-
-            result.className = evaluation.decision === 'PASS' ? 'result pass' : 'result fail';
-            
-            document.getElementById('score').textContent = 
-                `${evaluation.decision === 'PASS' ? '✅ 2次選考通過' : '❌ 選考見送り'} (${evaluation.score}点)`;
-            
-            document.getElementById('reasoning').textContent = evaluation.reasoning;
-        }
-
-        function showUpload() {
-            uploadSection.style.display = 'block';
-            processing.style.display = 'none';
-            result.style.display = 'none';
-        }
-
-        function showError(message) {
-            error.textContent = message;
-            error.style.display = 'block';
-        }
-
-        function hideError() {
-            error.style.display = 'none';
-        }
-
-        function restart() {
-            fileInput.value = '';
-            hideError();
-            showUpload();
-        }
-    </script>
+    <script src="app.js"></script>
 </body>
 </html>

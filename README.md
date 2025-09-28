@@ -5,30 +5,55 @@ Gemini API（Google AI）でPDFのエントリーシートを評価し、面接�
 - PDFアップロード → テキスト抽出（pdf-parse） → Geminiで評価（JSON）
 - Helmet/CORSで最低限のセキュリティ
 
+## 必要な環境
+- **Node.js 18.0.0以上** （重要: Node.js 16では動作しません）
+- npm 8.0.0以上
+
 ## 技術スタック
 - Node.js + TypeScript + Express
 - Google Generative Language API (Gemini)
 - pdf-parse / multer
 
 ## セットアップ
-1) 依存関係のインストール
-- npm install
+1) Node.jsバージョンの確認
+```bash
+node --version  # 18.0.0以上であることを確認
+```
 
-2) 環境変数の設定
-- cp .env.example .env
-- .env を編集
-  - GEMINI_API_KEY=your_gemini_api_key_here
-  - GEMINI_MODEL=gemini-2.0-flash（任意・推奨）
-  - PORT=3000（任意）
+2) 依存関係のインストール
+```bash
+npm install
+```
 
-3) ビルドと起動
-- npm run build
-- npm start
+3) 環境変数の設定
+```bash
+cp .env.example .env
+```
+.env を編集して以下を設定：
+- GEMINI_API_KEY=your_gemini_api_key_here
+- GEMINI_MODEL=gemini-2.5-pro（任意・推奨）
+- PORT=3000（任意）
+
+4) ビルドと起動
+```bash
+npm run build
+npm start
+```
+
+開発モードで起動する場合：
+```bash
+npm run dev
+```
 
 ## 使い方
 - http://localhost:3000 を開く
 - PDFを選択してアップロード
 - decision / score / reasoning を確認
+
+## セキュリティ改善点
+- インラインJavaScriptを外部ファイルに分離済み
+- すべてのイベントハンドラーをaddEventListenerで実装済み
+- CSP（Content Security Policy）対応済み
 
 ## API
 - POST /api/evaluate-pdf
