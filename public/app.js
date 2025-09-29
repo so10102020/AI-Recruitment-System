@@ -12,23 +12,23 @@ const restartBtn = document.getElementById('restartBtn');
 
 function init() {
   if (selectFileBtn) {
-    selectFileBtn.addEventListener('click', () => fileInput && fileInput.click());
+    selectFileBtn.addEventListener('click', () => fileInput && fileInput.click(), false);
   }
 
   if (uploadArea) {
-    // アップロードエリアのクリックでも選択ダイアログを開く
-    uploadArea.addEventListener('click', () => fileInput && fileInput.click());
+    // アップロードエリアのクリックイベントは削除（重複防止）
+    // uploadArea.addEventListener('click', () => fileInput && fileInput.click(), false);
 
     // ドラッグ&ドロップイベント
     uploadArea.addEventListener('dragover', (e) => {
       e.preventDefault();
       uploadArea.classList.add('dragover');
-    });
+    }, false);
 
     uploadArea.addEventListener('dragleave', (e) => {
       e.preventDefault();
       uploadArea.classList.remove('dragover');
-    });
+    }, false);
 
     uploadArea.addEventListener('drop', (e) => {
       e.preventDefault();
@@ -38,15 +38,15 @@ function init() {
         // fileInput.files へ直接代入は環境により不可のため、ハンドラにFilesを渡す
         handleFile({ target: { files } });
       }
-    });
+    }, false);
   }
 
   if (fileInput) {
-    fileInput.addEventListener('change', handleFile);
+    fileInput.addEventListener('change', handleFile, false);
   }
 
   if (restartBtn) {
-    restartBtn.addEventListener('click', restart);
+    restartBtn.addEventListener('click', restart, false);
   }
 }
 
